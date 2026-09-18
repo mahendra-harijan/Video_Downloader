@@ -164,7 +164,7 @@ export async function POST(request: Request) {
     return NextResponse.json(
       { 
         success: false, 
-        error: "We couldn't access this media. Make sure the content is public and available for download, and the URL is supported." 
+        error: error.message || "We couldn't access this media. Make sure the content is public and available for download, and the URL is supported." 
       },
       { status: 400 }
     );

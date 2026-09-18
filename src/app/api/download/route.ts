@@ -116,7 +116,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(
       { 
         success: false, 
-        error: "Failed to prepare download. The source may be restricted or unavailable." 
+        error: error.message || "Failed to prepare download. The source may be restricted or unavailable." 
       },
       { status: 400 }
     );
