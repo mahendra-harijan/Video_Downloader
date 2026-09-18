@@ -13,6 +13,7 @@ CloudDrop is a modern, fast, and secure media downloading application built with
 
 ## Technologies Used
 
+
 - **Frontend**: React 18, Next.js 14, Tailwind CSS, shadcn/ui, Lucide React, Sonner (for toast notifications).
 - **Backend API**: Next.js Route Handlers, Node.js Streams.
 - **Media Engine**: `youtube-dl-exec` (yt-dlp).

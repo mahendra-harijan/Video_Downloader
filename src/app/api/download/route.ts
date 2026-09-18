@@ -96,7 +96,7 @@ export async function GET(request: NextRequest) {
     headers.set("Content-Type", "application/octet-stream");
     
     // Set a cookie so the frontend knows the server has responded and the download has started
-    const cookieName = `dl_${formatId.replace(/[^a-zA-Z0-9]/g, '')}`;
+    const cookieName = `dl_${parsed.formatId.replace(/[^a-zA-Z0-9]/g, '')}`;
     headers.set("Set-Cookie", `${cookieName}=1; Path=/; Max-Age=60; SameSite=Lax`);
 
     return new NextResponse(stream, {
