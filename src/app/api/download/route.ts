@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import youtubedl from "youtube-dl-exec";
+import { getYtdlp } from "@/lib/ytdlp";
 import path from "path";
 import { Readable } from "stream";
 import fs from "fs";
@@ -55,6 +55,7 @@ export async function GET(request: NextRequest) {
     const stream = new ReadableStream({
       async start(controller) {
         try {
+          const youtubedl = await getYtdlp();
           // Await the download process to complete
           await youtubedl(parsed.url, dlOptions);
 

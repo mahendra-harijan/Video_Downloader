@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import youtubedl from "youtube-dl-exec";
+import { getYtdlp } from "@/lib/ytdlp";
 import path from "path";
 import { MediaFormat, MediaInfo, AnalyzeResponse } from "@/types/media";
 
@@ -12,6 +12,8 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
     const { url } = analyzeSchema.parse(body);
+
+    const youtubedl = await getYtdlp();
 
     const info = await youtubedl(url, {
       dumpSingleJson: true,
