@@ -44,12 +44,28 @@ export function FormatTable({ formats, media }: FormatTableProps) {
       a.click();
       document.body.removeChild(a);
 
-      toast.success("Download Started", {
-        description: `Downloading ${format.quality} ${format.container}...`,
+      toast.success("Download Preparing", {
+        description: `Server is processing ${format.quality} ${format.container}. Please wait...`,
       });
 
-      // Reset state after a short delay to allow clicking again
-      setTimeout(() => setDownloadingId(null), 2000);
+      // Poll for the cookie that indicates the server has finished preparing and sent the headers
+      const cookieName = `dl_${format.id.replace(/[^a-zA-Z0-9]/g, '')}`;
+      const pollInterval = setInterval(() => {
+        if (document.cookie.includes(`${cookieName}=1`)) {
+          clearInterval(pollInterval);
+          setDownloadingId(null);
+          toast.success("Download Started", {
+            description: "Your file is now downloading.",
+          });
+        }
+      }, 1000);
+
+      // Fallback timeout in case something goes wrong (e.g. 10 minutes)
+      setTimeout(() => {
+        clearInterval(pollInterval);
+        setDownloadingId(prev => prev === format.id ? null : prev);
+      }, 600000);
+
     } catch (err) {
       toast.error("Download Failed", {
         description: "Something went wrong while starting the download.",

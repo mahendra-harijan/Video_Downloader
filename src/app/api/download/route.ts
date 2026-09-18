@@ -1,12 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { create } from "youtube-dl-exec";
+import youtubedl from "youtube-dl-exec";
 import path from "path";
 import { Readable } from "stream";
 import fs from "fs";
 import os from "os";
-
-const youtubedl = create(path.join(process.cwd(), 'bin', 'yt-dlp.exe'));
 
 // Must run in Node.js runtime (not Edge) because it uses child_process
 export const runtime = 'nodejs';
@@ -54,47 +52,52 @@ export async function GET(request: NextRequest) {
       dlOptions.mergeOutputFormat = "mp4";
     }
 
-    // Await the download process to complete
-    await youtubedl(parsed.url, dlOptions);
+    const stream = new ReadableStream({
+      async start(controller) {
+        try {
+          // Await the download process to complete
+          await youtubedl(parsed.url, dlOptions);
 
-    // If file doesn't exist, something went wrong
-    if (!fs.existsSync(tmpFile)) {
-      throw new Error("File was not created by yt-dlp");
-    }
+          // If file doesn't exist, something went wrong
+          if (!fs.existsSync(tmpFile)) {
+            throw new Error("File was not created by yt-dlp");
+          }
 
-    // Read the file as a stream
-    const fileStream = fs.createReadStream(tmpFile);
+          // Read the file as a stream
+          const fileStream = fs.createReadStream(tmpFile);
 
-    // Clean up the file when the stream is destroyed or closed
-    fileStream.on('close', () => {
-      try {
-        if (fs.existsSync(tmpFile)) fs.unlinkSync(tmpFile);
-      } catch (e) {
-        // ignore
+          fileStream.on('data', (chunk) => {
+            controller.enqueue(chunk);
+          });
+
+          fileStream.on('end', () => {
+            controller.close();
+            try { if (fs.existsSync(tmpFile)) fs.unlinkSync(tmpFile); } catch (e) {}
+          });
+
+          fileStream.on('error', (err) => {
+            controller.error(err);
+            try { if (fs.existsSync(tmpFile)) fs.unlinkSync(tmpFile); } catch (e) {}
+          });
+        } catch (error) {
+          console.error("Stream Error:", error);
+          controller.error(error);
+          try { if (fs.existsSync(tmpFile)) fs.unlinkSync(tmpFile); } catch (e) {}
+        }
+      },
+      cancel() {
+        try { if (fs.existsSync(tmpFile)) fs.unlinkSync(tmpFile); } catch (e) {}
       }
     });
-    fileStream.on('error', () => {
-      try {
-        if (fs.existsSync(tmpFile)) fs.unlinkSync(tmpFile);
-      } catch (e) {
-        // ignore
-      }
-    });
-
-    // Convert Node.js Readable to Web ReadableStream
-    const stream = Readable.toWeb(fileStream) as any;
 
     const headers = new Headers();
     // Suggest the browser to download the file with this name
     headers.set("Content-Disposition", `attachment; filename="${filename}"`);
     headers.set("Content-Type", "application/octet-stream");
     
-    try {
-      const stat = fs.statSync(tmpFile);
-      headers.set("Content-Length", stat.size.toString());
-    } catch (e) {
-      // ignore if stat fails
-    }
+    // Set a cookie so the frontend knows the server has responded and the download has started
+    const cookieName = `dl_${formatId.replace(/[^a-zA-Z0-9]/g, '')}`;
+    headers.set("Set-Cookie", `${cookieName}=1; Path=/; Max-Age=60; SameSite=Lax`);
 
     return new NextResponse(stream, {
       status: 200,

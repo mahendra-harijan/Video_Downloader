@@ -1,10 +1,8 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { create } from "youtube-dl-exec";
+import youtubedl from "youtube-dl-exec";
 import path from "path";
 import { MediaFormat, MediaInfo, AnalyzeResponse } from "@/types/media";
-
-const youtubedl = create(path.join(process.cwd(), 'bin', 'yt-dlp.exe'));
 
 const analyzeSchema = z.object({
   url: z.string().url("Please enter a valid URL."),
