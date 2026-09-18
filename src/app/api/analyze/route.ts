@@ -18,10 +18,8 @@ export async function POST(request: Request) {
     const info = await youtubedl(url, {
       dumpSingleJson: true,
       noWarnings: true,
-      callHome: false,
       noCheckCertificates: true,
       preferFreeFormats: true,
-      youtubeSkipDashManifest: true,
     }) as any;
 
     const mediaInfo: MediaInfo = {

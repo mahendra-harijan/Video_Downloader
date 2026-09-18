@@ -39,7 +39,6 @@ export async function GET(request: NextRequest) {
       format: parsed.formatId,
       output: tmpFile,
       noWarnings: true,
-      callHome: false,
       noCheckCertificates: true,
       quiet: true,
     };
