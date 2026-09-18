@@ -7,26 +7,35 @@ import https from "https";
 const YTDLP_URL = "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_linux";
 
 async function downloadBinary(url: string, dest: string): Promise<void> {
-  return new Promise((resolve, reject) => {
-    https.get(url, (response) => {
-      if (response.statusCode === 302 && response.headers.location) {
-        // Handle redirect
-        https.get(response.headers.location, (res) => {
-          const file = fs.createWriteStream(dest, { mode: 0o777 });
-          res.pipe(file);
-          res.on("end", () => resolve());
-          res.on("error", reject);
-        }).on("error", reject);
-      } else if (response.statusCode === 200) {
-        const file = fs.createWriteStream(dest, { mode: 0o777 });
-        response.pipe(file);
-        response.on("end", () => resolve());
-        response.on("error", reject);
-      } else {
-        reject(new Error(`Failed to download yt-dlp: ${response.statusCode}`));
-      }
-    }).on("error", reject);
-  });
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error(`Failed to download yt-dlp: ${response.status} ${response.statusText}`);
+  }
+  
+  if (!response.body) {
+    throw new Error("No response body");
+  }
+
+  const fileStream = fs.createWriteStream(dest);
+  
+  // Convert web ReadableStream to Node.js stream and pipe
+  const reader = response.body.getReader();
+  
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      fileStream.write(value);
+    }
+  } finally {
+    fileStream.end();
+  }
+
+  // Wait for file to finish writing completely
+  await new Promise(resolve => fileStream.on('finish', () => resolve(undefined)));
+  
+  // Make the binary executable
+  fs.chmodSync(dest, 0o777);
 }
 
 let ytdlpInstance: ReturnType<typeof create> | null = null;
